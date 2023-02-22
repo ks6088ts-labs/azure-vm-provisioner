@@ -1,0 +1,50 @@
+name: Provisioning a virtual machine via Bicep
+
+on:
+  workflow_dispatch:
+    # https://github.blog/changelog/2021-11-10-github-actions-input-types-for-manual-workflows/
+    inputs:
+      department:
+        type: choice
+        description: Specify department
+        options:
+        - Administrator
+        - Reader
+        - Contributor
+      adminUsername:
+        type: string
+        description: adminUsername for VM
+        required: true
+        default: "adminUser"
+      adminPasswordOrKey:
+        type: string
+        description: adminPassword or Key for VM
+        required: true
+      resourceGroupName:
+        type: string
+        description: Resource group name for Azure
+        required: true
+        default: "azure-vm-provisioner"
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+
+      # Checkout code
+    - uses: actions/checkout@main
+
+      # Log into Azure
+    - uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      # Deploy Bicep file
+    - name: deploy a VM for ${{ github.event.inputs.department }}
+      uses: azure/arm-deploy@v1
+      with:
+        subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION }}
+        resourceGroupName: ${{ github.event.inputs.resourceGroupName }}
+        template: ./main.bicep
+        parameters: "adminUsername=${{ github.event.inputs.adminUsername }} adminPasswordOrKey=${{ github.event.inputs.adminPasswordOrKey }}"
+        failOnStdErr: false
